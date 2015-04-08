@@ -9,7 +9,6 @@ deploy:
     secure: UnM5NVa5Dl44QzU0SCIe9aUhSj1GinFbdefLjsr6ImCfKcp4aGuYxXIXIQ4XmPfti+Dk45Xx6tvv/llqN/i73I8G2tKw98AQUa3kXgaeP/lqd/5ak0djbbOotQO/MUlVjumwNQh/un5DfWNLTJFNm+z2w4rlQIwHBzCJcQoRbhk=
   file:
     - build/distributions/xmlcalabash1-sendmail-$TRAVIS_TAG.zip
-    - build/libs/xmlcalabash1-sendmail-$TRAVIS_TAG.zip
   on:
     tags: true
     all_branches: true
