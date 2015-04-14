@@ -138,6 +138,10 @@ task copyJavaDoc(dependsOn: javadoc, type: Copy) {
   into "build/dist/docs"
 }
 
+task testStep(dependsOn: classes) << {
+  println "Can't reliably test sending email; assume success."
+}
+
 task makeDist(dependsOn: [ build, copyJar, copyLib ]) << {
   println "Created distribution in build/dist"
 }
@@ -148,7 +152,7 @@ task zipDist(dependsOn: makeDist, type: Zip) {
   archiveName 'xmlcalabash1-sendmail-' + distVersion + ".zip"
 }
 
-task dist(dependsOn: zipDist) << {
+task dist(dependsOn: [testStep, zipDist]) << {
   // nop
 }
 
