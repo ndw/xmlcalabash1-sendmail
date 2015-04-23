@@ -11,6 +11,7 @@ import com.xmlcalabash.runtime.XAtomicStep;
 import com.xmlcalabash.util.NodeToBytes;
 import com.xmlcalabash.util.S9apiUtils;
 import com.xmlcalabash.util.TreeWriter;
+import com.xmlcalabash.util.XProcURIResolver;
 import net.sf.saxon.s9api.Axis;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.SaxonApiException;
@@ -18,6 +19,9 @@ import net.sf.saxon.s9api.Serializer;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmNodeKind;
 import net.sf.saxon.s9api.XdmSequenceIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.xml.sax.InputSource;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -34,12 +38,19 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.Message;
 import javax.mail.internet.MimeMultipart;
+import javax.xml.transform.Source;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.URIResolver;
+import javax.xml.transform.sax.SAXSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -64,6 +75,8 @@ public class SendMail extends DefaultStep {
     public final static QName em_name = new QName("em", NS_EMAIL, "name");
     public final static QName em_adrs = new QName("em", NS_EMAIL, "adrs");
     public final static QName em_content = new QName("em", NS_EMAIL, "content");
+
+    private static final String library_xpl = "http://xmlcalabash.com/extension/steps/send-mail.xpl";
 
     private ReadablePipe source = null;
     private WritablePipe result = null;
@@ -350,6 +363,49 @@ public class SendMail extends DefaultStep {
 
         public String getName() {
             return name;
+        }
+    }
+
+    public static void configureStep(XProcRuntime runtime) {
+        XProcURIResolver resolver = runtime.getResolver();
+        URIResolver uriResolver = resolver.getUnderlyingURIResolver();
+        URIResolver myResolver = new StepResolver(uriResolver);
+        resolver.setUnderlyingURIResolver(myResolver);
+    }
+
+    private static class StepResolver implements URIResolver {
+        Logger logger = LoggerFactory.getLogger(SendMail.class);
+        URIResolver nextResolver = null;
+
+        public StepResolver(URIResolver next) {
+            nextResolver = next;
+        }
+
+        @Override
+        public Source resolve(String href, String base) throws TransformerException {
+            try {
+                URI baseURI = new URI(base);
+                URI xpl = baseURI.resolve(href);
+                if (library_xpl.equals(xpl.toASCIIString())) {
+                    URL url = SendMail.class.getResource("/library.xpl");
+                    logger.debug("Reading library.xpl for cx:send-mail from " + url);
+                    InputStream s = SendMail.class.getResourceAsStream("/library.xpl");
+                    if (s != null) {
+                        SAXSource source = new SAXSource(new InputSource(s));
+                        return source;
+                    } else {
+                        logger.info("Failed to read library.xpl for cx:send-mail");
+                    }
+                }
+            } catch (URISyntaxException e) {
+                // nevermind
+            }
+
+            if (nextResolver != null) {
+                return nextResolver.resolve(href, base);
+            } else {
+                return null;
+            }
         }
     }
 }

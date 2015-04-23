@@ -1,4 +1,0 @@
-<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
-  <uri name="http://xmlcalabash.com/extension/steps/send-mail.xpl"
-       uri="jar:file:lib/xmlcalabash1-sendmail-VERSION.jar!/library.xpl"/>
-</catalog>
