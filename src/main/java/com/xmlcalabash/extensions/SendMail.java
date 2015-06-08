@@ -77,6 +77,7 @@ public class SendMail extends DefaultStep {
     public final static QName em_content = new QName("em", NS_EMAIL, "content");
 
     private static final String library_xpl = "http://xmlcalabash.com/extension/steps/send-mail.xpl";
+    private static final String library_url = "/com/xmlcalabash/extensions/send-mail/library.xpl";
 
     private ReadablePipe source = null;
     private WritablePipe result = null;
@@ -387,14 +388,14 @@ public class SendMail extends DefaultStep {
                 URI baseURI = new URI(base);
                 URI xpl = baseURI.resolve(href);
                 if (library_xpl.equals(xpl.toASCIIString())) {
-                    URL url = SendMail.class.getResource("/library.xpl");
+                    URL url = SendMail.class.getResource(library_url);
                     logger.debug("Reading library.xpl for cx:send-mail from " + url);
-                    InputStream s = SendMail.class.getResourceAsStream("/library.xpl");
+                    InputStream s = SendMail.class.getResourceAsStream(library_url);
                     if (s != null) {
                         SAXSource source = new SAXSource(new InputSource(s));
                         return source;
                     } else {
-                        logger.info("Failed to read library.xpl for cx:send-mail");
+                        logger.info("Failed to read " + library_url + " for cx:send-mail");
                     }
                 }
             } catch (URISyntaxException e) {
