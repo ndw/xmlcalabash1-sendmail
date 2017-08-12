@@ -229,7 +229,10 @@ public class SendMail extends DefaultStep {
                 bodyPart.setDisposition(Part.ATTACHMENT);
                 mp.addBodyPart(bodyPart);
             }
-            msg.setContent(mp);
+
+            if (mp != null) {
+                msg.setContent(mp);
+            }
 
             Transport.send(msg);
         } catch (AddressException ex) {
