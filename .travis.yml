@@ -9,4 +9,5 @@ deploy:
     secure: aq3F/lf3megcm2IcxgTo4UdU6HHe88wnCmwWpSN+K4Xw1PkLcDzwe+GTYalBBZntqt1Jc8LO/9kntRLPEPAWIrlkG9puNE4DlNYDSleggNgyVIzLsu4nKcwO+o4Pk5ZbyiSypBqXlK4aARRNEvhmNU50s1vrm99VIaIjEBCpqJk=
   file: build/distributions/xmlcalabash1-sendmail-$TRAVIS_TAG.zip
   on:
-    repo: ndw/xmlcalabash1-sendmail
+    tags: true
+    all_branches: true
