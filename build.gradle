@@ -125,8 +125,10 @@ task testStep(type: JavaExec) {
   args('-D', '-a', 'src/test/resources/test-pipeline.xpl')
 }
 
-task makeDist(dependsOn: [ build, copyJar, copyLib ]) << {
-  println "Created distribution in build/dist"
+task makeDist(dependsOn: [ build, copyJar, copyLib ]) {
+  doLast {
+    println "Created distribution in build/dist"
+  }
 }
 
 task zipDist(dependsOn: makeDist, type: Zip) {
@@ -135,7 +137,7 @@ task zipDist(dependsOn: makeDist, type: Zip) {
   archiveName 'xmlcalabash1-sendmail-' + distVersion + ".zip"
 }
 
-task dist(dependsOn: [testStep, zipDist]) << {
+task dist(dependsOn: [testStep, zipDist]) {
   // nop
 }
 
