@@ -82,9 +82,7 @@ public class SendMail extends DefaultStep {
     private ReadablePipe source = null;
     private WritablePipe result = null;
 
-    /**
-     * Creates a new instance of Identity
-     */
+    /* Creates a new instance of SendMail */
     public SendMail(XProcRuntime runtime, XAtomicStep step) {
         super(runtime,step);
     }
