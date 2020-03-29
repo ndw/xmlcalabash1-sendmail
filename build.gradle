@@ -10,21 +10,18 @@ buildscript {
 
 plugins {
   id "java"
-  id "osgi"
-  id "maven"
+  id "maven-publish"
   id "signing"
 }
 
 repositories {
   mavenCentral()
-  maven { url "http://maven.restlet.org" }
-  maven { url "http://developer.marklogic.com/maven2" }
-  maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+  maven { url "https://maven.restlet.org" }
 }
 
 configurations {
   copydep {
-    extendsFrom runtime
+    extendsFrom implementation
   }
   copydep.exclude module: 'xmlcalabash'
   copydep.exclude module: 'nwalsh-annotations'
@@ -33,11 +30,11 @@ configurations {
 }
 
 dependencies {
-  deployerJars "org.apache.maven.wagon:wagon-http:2.4"
+  deployerJars "org.apache.maven.wagon:wagon-http:3.3.4"
 
-  compile (
-    [group: 'com.nwalsh', name: 'nwalsh-annotations', version: '1.0.0'],
-    [group: 'com.xmlcalabash', name: 'xmlcalabash', version: '1.1.1-95'],
+  implementation (
+    [group: 'com.nwalsh', name: 'nwalsh-annotations', version: '1.0.1'],
+    [group: 'com.xmlcalabash', name: 'xmlcalabash', version: xmlCalabashVersion],
     [group: 'javax.mail', name: 'javax.mail-api', version: '1.5.2']
   )
 }
@@ -45,9 +42,15 @@ dependencies {
 // Variables
 project.ext.saxonRelease = saxonVersion.substring(0,5)
 project.ext.saxonBranch  = saxonVersion.substring(0,3).replaceAll("\\.", "")
-project.ext.releaseVersion = version
-project.ext.distVersion = version + snapshot
-version = project.ext.distVersion // - gets turned into . in some contexts
+project.ext.releaseVersion = relVersion
+project.ext.distVersion = relVersion + snapshot
+relVersion = project.ext.distVersion // - gets turned into . in some contexts
+
+compileJava {
+  options.deprecation = true
+  options.compilerArgs += ['-Xlint:deprecation']
+  options.annotationProcessorPath = configurations.compileClasspath
+}
 
 task copyLib(type: Copy) {
   FileCollection lib = configurations.copydep
@@ -62,22 +65,23 @@ task copyLib(type: Copy) {
 }
 
 jar {
+  archiveBaseName = "xmlcalabash1-sendmail-" + relVersion
   manifest {
-    instruction 'Built-By', builtBy
-    instruction 'Implementation-Vendor', 'Norman Walsh'
-    instruction 'Implementation-Title', 'XML Calabash Sendmail step'
-    instruction 'Implementation-Version', distVersion
-    instruction 'Bundle-SymbolicName', 'com.xmlcalabash.extensions.sendmail'
-    instruction 'Bundle-RequiredExecutionEnvironment', 'J2SE-1.7'
-    instruction 'Export-Package', '*, etc'
-    instruction 'Import-Package', 'net.sf.saxon.*;version=' + project.ext.saxonRelease + ',\
+    attributes 'Built-By': builtBy
+    attributes 'Implementation-Vendor': 'Norman Walsh'
+    attributes 'Implementation-Title': 'XML Calabash Sendmail step'
+    attributes 'Implementation-Version': distVersion
+    attributes 'Bundle-SymbolicName': 'com.xmlcalabash.extensions.sendmail'
+    attributes 'Bundle-RequiredExecutionEnvironment': 'J2SE-1.7'
+    attributes 'Export-Package': '*, etc'
+    attributes 'Import-Package': 'net.sf.saxon.*;version=' + project.ext.saxonRelease + ',\
   javax.crypto.*,\
   javax.xml.*,\
   org.apache.commons.httpclient.*,\
   org.xml.sax.*,\
   *;resolution:=optional'
-    instruction 'DynamicImport-Package', '*'
-    instruction 'Class-Path', project.ext.runtimeClasspath + " lib"
+    attributes 'DynamicImport-Package': '*'
+    attributes 'Class-Path': project.ext.runtimeClasspath + " lib"
   }
 }
 
@@ -119,7 +123,7 @@ task copyJavaDoc(dependsOn: javadoc, type: Copy) {
 }
 
 task testStep(type: JavaExec) {
-  classpath = configurations.copydep + configurations.runtime + sourceSets.main.output
+  classpath = configurations.runtimeClasspath + sourceSets.main.output
 
   main = 'com.xmlcalabash.drivers.Main'
   maxHeapSize = "1024m"
@@ -128,73 +132,72 @@ task testStep(type: JavaExec) {
 
 task makeDist(dependsOn: [ build, copyJar, copyLib ]) {
   doLast {
-    println "Created distribution in build/dist"
+    println("Created distribution in build/dist")
   }
 }
 
 task zipDist(dependsOn: makeDist, type: Zip) {
   from('build/dist')
   into 'xmlcalabash1-sendmail-' + distVersion
-  archiveName 'xmlcalabash1-sendmail-' + distVersion + ".zip"
+  archiveFileName = 'xmlcalabash1-sendmail-' + distVersion + ".zip"
 }
 
 task dist(dependsOn: [testStep, zipDist]) {
   // nop
 }
 
-artifacts {
-  archives javadocJar
-  archives sourcesJar
-}
-
 signing {
-  required { gradle.taskGraph.hasTask("uploadArchives") }
-  sign configurations.archives
+  sign publishing.publications
 }
 
-uploadArchives {
-  repositories {
-    mavenDeployer {
-      configuration = configurations.deployerJars
-
-      beforeDeployment { MavenDeployment deployment ->
-        signing.signPom(deployment) }
-
-      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-        authentication(userName: sonatypeUsername, password: sonatypePassword)
-      }
-
-      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-        authentication(userName: sonatypeUsername, password: sonatypePassword)
-      }
-
-      pom.project {
-        name 'XML Calabash MarkLogic sendmail step'
-        packaging 'jar'
-        description 'XML Calabash extension step send email'
-        url 'https://github.com/ndw/xmlcalabash1-sendmail'
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      pom {
+        name = 'XML Calabash MarkLogic sendmail step'
+        packaging = 'jar'
+        description = 'XML Calabash extension step send email'
+        url = 'https://github.com/ndw/xmlcalabash1-sendmail'
 
         scm {
-          url 'scm:git@github.com:ndw/xmlcalabash1-sendmail.git'
-          connection 'scm:git@github.com:ndw/xmlcalabash1-sendmail.git'
-          developerConnection 'scm:git@github.com:ndw/xmlcalabash1-sendmail.git'
+          url = 'scm:git@github.com:ndw/xmlcalabash1-sendmail.git'
+          connection = 'scm:git@github.com:ndw/xmlcalabash1-sendmail.git'
+          developerConnection = 'scm:git@github.com:ndw/xmlcalabash1-sendmail.git'
         }
 
         licenses {
           license {
-            name 'The Apache Software License, Version 2.0'
-            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-            distribution 'repo'
+            name = 'The Apache Software License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            distribution = 'repo'
           }
         }
 
         developers {
           developer {
-            id 'ndw'
-            name 'Norman Walsh'
+            id = 'ndw'
+            name = 'Norman Walsh'
           }
         }
+      }
+
+      groupId = "com.xmlcalabash"
+      artifactId = "xmlcalabash1-sendmail"
+      version = relVersion
+      from components.java
+      artifact javadocJar
+      artifact sourcesJar
+    }
+  }
+
+  repositories {
+    maven {
+      url = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+      credentials {
+        username = sonatypeUsername
+        password = sonatypePassword
       }
     }
   }
 }
+
